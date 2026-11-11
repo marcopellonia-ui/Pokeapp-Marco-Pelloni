@@ -1,570 +1,119 @@
-import {
-  leerPokemones,
-  guardarPokemones,
-  leerUsuarios,
-  guardarUsuarios,
-} from "./persistencia.js";
-
-// ==========================================
-// ELEMENTO PRINCIPAL DE LA APLICACIÓN
-// ==========================================
+import { leerPokemones, guardarPokemones, leerUsuarios, guardarUsuarios } from "./persistencia.js";
 
 const app = document.querySelector("#app");
-
-// ==========================================
-// 1. LANDING
-// ==========================================
-
-// Estructura básica de la pantalla
-const landing = `
-  <section class="landing">
-    <h1>Bienvenido a PokeApp</h1>
-    <p>Explorá el mundo Pokémon.</p>
-    <p>Elegí una opción del menú para comenzar.</p>
-  </section>
-`;
-
-// Función para cargar los elementos dinámicos
-function cargarLanding() {
-  console.log("Landing cargado");
-}
-
-// Evento del logo
 const logo = document.querySelector(".header-logo img");
+const linkPokedex = document.querySelector("#link-pokedex");
+const linkLogin = document.querySelector("#link-login");
+const linkRegistro = document.querySelector("#link-registro");
+const linkBatalla = document.querySelector("#link-juego");
+const formularioBusqueda = document.querySelector("#form-busqueda");
+let usuarioActual = null;
+let pokemonSeleccionado = null;
 
-logo.addEventListener("click", function () {
-  app.innerHTML = landing;
-
-  cargarLanding();
-});
-
-// ==========================================
-// 2. POKÉDEX
-// ==========================================
-
-// Estructura básica de la pantalla
-const pokedex = `
-  <section class="pokedex-section">
-    <h1>Pokédex</h1>
-
-    <div id="pokedex-gallery" class="pokedex-gallery"></div>
-  </section>
-`;
-
-// Función para cargar los elementos dinámicos
-function cargarPokedex() {
-  const pokemones = leerPokemones();
-
-  const pokedexGallery = document.querySelector("#pokedex-gallery");
-
-  for (let pokemon of pokemones) {
-    pokedexGallery.innerHTML += `
-      <article class="pokemon-card">
-
-        <div class="pokemon-image">
-          <img 
-            src="${pokemon.imagen}" 
-            alt="${pokemon.nombre}"
-          />
-        </div>
-
-        <div class="pokemon-info">
-
-          <span class="pokemon-id">
-            N.º ${pokemon.id}
-          </span>
-
-          <h2>${pokemon.nombre}</h2>
-
-          <div class="pokemon-types">
-            <span class="type type-${pokemon.tipo[0].toLowerCase()}">
-              ${pokemon.tipo[0]}
-            </span>
-          </div>
-
-          <p class="pokemon-rareza">
-            ${pokemon.rareza}
-          </p>
-
-          <button class="btn-detalle" data-id="${pokemon.id}">
-            Ver detalles
-          </button>
-
-        </div>
-
-      </article>
-    `;
-  }
+function mostrarInicio() {
+  app.innerHTML = `<section class="landing"><h1>¡Bienvenido a PokeApp!</h1><p>Explorá, conocé y descubrí Pokémon.</p><p>Entrá a la Pokédex para consultar sus características o iniciá una batalla.</p><div class="landing-actions"><button id="inicio-pokedex" data-accion="inicio-pokedex">Explorar Pokédex</button><button id="inicio-batalla" data-accion="inicio-batalla">Ir a batalla</button></div></section>`;
 }
 
-// Evento del botón Pokédex
-const botonPokedex = document.querySelector("#link-pokedex");
-
-botonPokedex.addEventListener("click", function (event) {
-  event.preventDefault();
-
-  app.innerHTML = pokedex;
-
-  cargarPokedex();
-});
-
-// ==========================================
-// 3. INICIAR SESIÓN
-// ==========================================
-
-// Estructura básica de la pantalla
-const login = `
-  <section class="login-section">
-          <h1>Iniciar sesión</h1>
-
-          <form id="form-login">
-            <label for="username"> Usuario </label>
-
-            <input type="text" id="username" required />
-
-            <label for="password"> Contraseña </label>
-
-            <input type="password" id="password" required />
-            <button type="submit">Ingresar</button>
-          </form>
-        </section>
-`;
-
-// Función para cargar los elementos dinámicos
-function cargarLogin() {
-  console.log("Formulario de inicio de sesión cargado");
+function mostrarPokedex(filtro = "") {
+  const pokemones = leerPokemones().filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()));
+  app.innerHTML = `<section class="pokedex-section"><h1>Pokédex</h1><p>Pokémon registrados: ${leerPokemones().length}</p><div class="pokedex-gallery">${pokemones.map(p => `<article class="pokemon-card"><div class="pokemon-image"><img src="${p.imagen}" alt="${p.nombre}"></div><div class="pokemon-info"><span class="pokemon-id">N.º ${p.id}</span><h2>${p.nombre}</h2><div class="pokemon-types">${p.tipo.map(t => `<span class="type">${t}</span>`).join("")}</div><p class="pokemon-rareza">${p.rareza}</p><button class="btn-detalle" data-accion="detalle" data-id="${p.id}">Ver detalles</button></div></article>`).join("") || "<p>No se encontraron Pokémon.</p>"}</div></section>`;
 }
 
-// Evento del botón Iniciar sesión
-const botonLogin = document.querySelector("#link-login");
+function mostrarDetalle(id) {
+  const pokemon = leerPokemones().find(p => p.id === Number(id));
+  if (!pokemon) { mostrarPokedex(); return; }
+  pokemonSeleccionado = pokemon;
+  app.innerHTML = `<section class="detalle-section"><button class="btn-secundario" data-accion="volver-pokedex">← Volver a la Pokédex</button><h1>${pokemon.nombre}</h1><div class="detalle-contenido"><img class="detalle-imagen" src="${pokemon.imagen}" alt="${pokemon.nombre}"><div><p><strong>Número:</strong> ${pokemon.id}</p><p><strong>Tipo:</strong> ${pokemon.tipo.join(" / ")}</p><p><strong>Descripción:</strong> ${pokemon.descripcion}</p><p><strong>Altura:</strong> ${pokemon.altura} m</p><p><strong>Peso:</strong> ${pokemon.peso} kg</p><p><strong>Generación:</strong> ${pokemon.generacion}</p><p><strong>Rareza:</strong> ${pokemon.rareza}</p><p><strong>Habilidad:</strong> ${pokemon.habilidad}</p><p><strong>HP:</strong> ${pokemon.hp} | <strong>Ataque:</strong> ${pokemon.ataque} | <strong>Defensa:</strong> ${pokemon.defensa} | <strong>Velocidad:</strong> ${pokemon.velocidad}</p><p><strong>Evolución:</strong> ${pokemon.tieneEvolucion ? `${pokemon.evolucion || "Sí"} ${pokemon.nivelEvolucion ? `(nivel ${pokemon.nivelEvolucion})` : ""}` : "No tiene"}</p><p><strong>Shiny disponible:</strong> ${pokemon.shiny ? "Sí" : "No"}</p>${pokemon.sonido ? `<audio controls src="${pokemon.sonido}">Tu navegador no permite reproducir audio.</audio>` : ""}</div></div></section>`;
+}
 
-botonLogin.addEventListener("click", function (event) {
-  event.preventDefault();
-
-  app.innerHTML = login;
-
-  cargarLogin();
-
-  const formularioLogin = document.querySelector("#form-login");
-
-  formularioLogin.addEventListener("submit", function (event) {
+function mostrarLogin() {
+  app.innerHTML = `<section class="form-section"><h1>Iniciar sesión</h1><form id="form-login"><label for="username">Usuario</label><input id="username" type="text" required><label for="password">Contraseña</label><input id="password" type="password" required><button type="submit">Ingresar</button><p id="mensaje-login" class="mensaje"></p></form><p>Usuario administrador de prueba: <strong>1234</strong> / contraseña: <strong>1234</strong></p></section>`;
+  document.querySelector("#form-login").addEventListener("submit", event => {
     event.preventDefault();
-    const username = document.querySelector("#username").value;
+    const username = document.querySelector("#username").value.trim();
     const password = document.querySelector("#password").value;
-    let encontrado = false;
-    const usuarios = leerUsuarios();
-    for (let usuario of usuarios) {
-      if (usuario.username === username && usuario.password === password) {
-        encontrado = true;
-        if (usuario.admin === true) {
-          app.innerHTML = perfilAdmin;
-          cargarPerfilAdmin();
-        } else {
-          app.innerHTML = perfilEstandar;
-          cargarPerfilEstandar();
-        }
-        document.querySelector(".user-profile-username").textContent =
-          usuario.username;
-        document.querySelector(".user-profile-email").textContent =
-          usuario.email;
-        document.querySelector(".user-profile-avatar").src = usuario.avatar;
-        document.querySelector(".user-profile-avatar").alt =
-          `Avatar de ${usuario.username}`;
-        break;
-      } else {
-        encontrado = false;
-      }
-    }
-    if (!encontrado) {
-      document
-        .querySelector("#form-login")
-        .insertAdjacentHTML(
-          "beforeend",
-          `<p class="error-message">Usuario o contraseña incorrectos</p>`,
-        );
-    }
+    const usuario = leerUsuarios().find(u => u.username === username && u.password === password);
+    if (!usuario) { document.querySelector("#mensaje-login").textContent = "Usuario o contraseña incorrectos."; return; }
+    usuarioActual = usuario;
+    mostrarPerfil();
   });
-});
-
-// ==========================================
-// 4. REGISTRO
-// ==========================================
-
-// Estructura básica de la pantalla
-const registro = `
-  <section class="registro-section">
-
-    <h1>Registrarse</h1>
-
-    <form id="form-registro">
-
-      <label for="nombre">
-        Nombre
-      </label>
-
-      <input 
-        type="text" 
-        id="nombre"
-      />
-
-      <label for="email">
-        Email
-      </label>
-
-      <input 
-        type="email" 
-        id="email"
-      />
-
-      <label for="nuevo-username">
-        Usuario
-      </label>
-
-      <input 
-        type="text" 
-        id="nuevo-username"
-      />
-
-      <label for="nueva-password">
-        Contraseña
-      </label>
-
-      <input 
-        type="password" 
-        id="nueva-password"
-      />
-
-      <button type="submit">
-        Registrarse
-      </button>
-
-    </form>
-
-  </section>
-`;
-
-// Función para cargar los elementos dinámicos
-function cargarRegistro() {
-  console.log("Formulario de registro cargado");
 }
 
-// Evento del botón Registrarse
-const botonRegistro = document.querySelector("#link-registro");
-
-botonRegistro.addEventListener("click", function (event) {
-  event.preventDefault();
-
-  app.innerHTML = registro;
-
-  cargarRegistro();
-});
-
-// ==========================================
-// 5. BATALLA
-// ==========================================
-
-// Estructura básica de la pantalla
-const batalla = `
-  <section class="batalla-section">
-
-    <h1>Batalla Pokémon</h1>
-
-    <p>
-      Elegí tu Pokémon para comenzar.
-    </p>
-
-    <button id="btn-comenzar-batalla">
-      Comenzar batalla
-    </button>
-
-  </section>
-`;
-
-// Función para cargar los elementos dinámicos
-function cargarBatalla() {
-  console.log("Pantalla de batalla cargada");
-}
-
-// Evento del botón Batalla
-const botonBatalla = document.querySelector("#link-juego");
-
-botonBatalla.addEventListener("click", function (event) {
-  event.preventDefault();
-
-  app.innerHTML = batalla;
-
-  cargarBatalla();
-});
-// ==========================================
-// 6. PERFIL USUARIO ESTANDAR
-// ==========================================
-function cargarPerfilEstandar() {
-  console.log("Perfil de usuario estándar cargado");
-}
-
-const perfilEstandar = `
-<section class="user-profile" id="user-profile">
-          <h2>Perfil de usuario</h2>
-          <div class="user-profile-info">
-            <div>
-              <img
-                src="./assets/avatar/default.png"
-                alt="Avatar de usuario"
-                class="user-profile-avatar"
-              />
-            </div>
-            <div>
-              <p>
-                Nombre de usuario:
-                <span class="user-profile-username">Usuario</span>
-              </p>
-              <p>
-                Email:
-                <span class="user-profile-email">usuario@example.com</span>
-              </p>
-            </div>
-          </div>
-        </section>`;
-
-// ==========================================
-// 7. PERFIL USUARIO ADMIN
-// ==========================================
-function cargarPerfilAdmin() {
-  console.log("Perfil de usuario admin cargado");
-
-  const formularioNuevoPokemon = document.querySelector("#form-nuevo-pokemon");
-
-  formularioNuevoPokemon.addEventListener("submit", function (event) {
+function mostrarRegistro() {
+  app.innerHTML = `<section class="form-section"><h1>Crear cuenta</h1><form id="form-registro"><label for="reg-nombre">Nombre</label><input id="reg-nombre" required><label for="reg-email">Email</label><input id="reg-email" type="email" required><label for="reg-username">Nombre de usuario</label><input id="reg-username" required><label for="reg-password">Contraseña</label><input id="reg-password" type="password" minlength="4" required><button type="submit">Registrarme</button><p id="mensaje-registro" class="mensaje"></p></form></section>`;
+  document.querySelector("#form-registro").addEventListener("submit", event => {
     event.preventDefault();
-
-    const numero = document.querySelector("#pokemon-number");
-    const nombre = document.querySelector("#pokemon-name");
-    const tipo = document.querySelector("#pokemon-type");
-    const altura = document.querySelector("#pokemon-height");
-    const peso = document.querySelector("#pokemon-weight");
-    const generacion = document.querySelector("#pokemon-generation");
-    const hp = document.querySelector("#pokemon-hp");
-    const ataque = document.querySelector("#pokemon-attack");
-    const velocidad = document.querySelector("#pokemon-speed");
-    const defensa = document.querySelector("#pokemon-defense");
-    const habilidad = document.querySelector("#pokemon-ability");
-    const tieneEvolucion = document.querySelector(
-      'input[name="pokemon-has-evolution"]:checked',
-    );
-    const evolucion = document.querySelector("#pokemon-evolution");
-    const nivelEvolucion = document.querySelector("#pokemon-evolution-level");
-    const rareza = document.querySelector("#pokemon-rarity");
-    const imagen = document.querySelector("#pokemon-image");
-    const sonido = document.querySelector("#pokemon-sound");
-    const shiny = document.querySelector("#pokemon-shiny");
-    const imagenShiny = document.querySelector("#pokemon-shiny-image");
-
-    const nuevoPokemon = {
-      id: numero.valueAsNumber,
-      nombre: nombre.value,
-      tipo: [tipo.value],
-      altura: altura.valueAsNumber,
-      peso: peso.valueAsNumber,
-      generacion: generacion.valueAsNumber,
-      hp: hp.valueAsNumber,
-      ataque: ataque.valueAsNumber,
-      velocidad: velocidad.valueAsNumber,
-      defensa: defensa.valueAsNumber,
-      habilidad: habilidad.value,
-      tieneEvolucion: tieneEvolucion.value === "true",
-      evolucion: evolucion.value,
-      nivelEvolucion: nivelEvolucion.valueAsNumber,
-      rareza: rareza.value,
-      imagen: imagen.value,
-      sonido: sonido.value,
-      shiny: shiny.checked,
-      imagenShiny: imagenShiny.value,
-    };
-
-    console.log("Nuevo Pokémon agregado:", nuevoPokemon);
-    guardarPokemones(nuevoPokemon);
-
-    formularioNuevoPokemon.reset();
-    numero.focus();
+    const usuarios = leerUsuarios();
+    const username = document.querySelector("#reg-username").value.trim();
+    const email = document.querySelector("#reg-email").value.trim();
+    if (usuarios.some(u => u.username === username || u.email === email)) { document.querySelector("#mensaje-registro").textContent = "Ese usuario o email ya está registrado."; return; }
+    const nuevoUsuario = { id: usuarios.length ? Math.max(...usuarios.map(u => u.id)) + 1 : 1, nombre: document.querySelector("#reg-nombre").value.trim(), email, username, password: document.querySelector("#reg-password").value, avatar: "./assets/avatar/default.png", admin: false };
+    guardarUsuarios(nuevoUsuario);
+    usuarioActual = nuevoUsuario;
+    mostrarPerfil();
   });
 }
 
-const perfilAdmin = ` <section class="user-profile" id="user-profile">
-          <h2>Perfil de usuario</h2>
-          <div class="user-profile-info">
-            <div>
-              <img
-                src="./assets/avatar/default.png"
-                alt="Avatar de usuario"
-                class="user-profile-avatar"
-              />
-            </div>
-            <div>
-              <p>
-                Nombre de usuario:
-                <span class="user-profile-username">Usuario</span>
-              </p>
-              <p>
-                Email:
-                <span class="user-profile-email">usuario@example.com</span>
-              </p>
-            </div>
-          </div>
-        </section>
-        <section class="new-pokemon" id="new-pokemon">
-          <h2>Nuevo Pokémon</h2>
-          <form id="form-nuevo-pokemon">
-            <label for="pokemon-number"> Numero en el Pokedex: </label>
-            <input type="number" id="pokemon-number" required />
+function mostrarPerfil() {
+  const admin = usuarioActual.admin;
+  app.innerHTML = `<section class="form-section"><h1>Mi perfil</h1><div class="perfil"><img src="${usuarioActual.avatar}" alt="Avatar" class="user-profile-avatar"><div><p><strong>Nombre:</strong> ${usuarioActual.nombre}</p><p><strong>Usuario:</strong> ${usuarioActual.username}</p><p><strong>Email:</strong> ${usuarioActual.email}</p><p><strong>Permisos:</strong> ${admin ? "Administrador" : "Usuario"}</p></div></div>${admin ? `<button id="ir-carga">Cargar un Pokémon</button>` : ""}<button id="cerrar-sesion" class="btn-secundario">Cerrar sesión</button></section>`;
+  document.querySelector("#cerrar-sesion").addEventListener("click", () => { usuarioActual = null; mostrarInicio(); });
+  if (admin) document.querySelector("#ir-carga").addEventListener("click", mostrarFormularioPokemon);
+}
 
-            <label for="pokemon-name">Nombre:</label>
-            <input type="text" id="pokemon-name" required />
+function mostrarFormularioPokemon() {
+  if (!usuarioActual || !usuarioActual.admin) { mostrarInicio(); return; }
+  app.innerHTML = `<section class="form-section"><h1>Cargar Pokémon</h1><form id="form-pokemon" class="pokemon-form"><label>Número <input id="p-id" type="number" min="1" required></label><label>Nombre <input id="p-nombre" required></label><label>Tipo(s), separados por coma <input id="p-tipo" placeholder="Planta, Veneno" required></label><label>Descripción <textarea id="p-descripcion" required></textarea></label><label>Altura (m) <input id="p-altura" type="number" min="0" step="0.1" required></label><label>Peso (kg) <input id="p-peso" type="number" min="0" step="0.1" required></label><label>Generación <input id="p-generacion" type="number" min="1" required></label><label>HP <input id="p-hp" type="number" min="1" required></label><label>Ataque <input id="p-ataque" type="number" min="0" required></label><label>Velocidad <input id="p-velocidad" type="number" min="0" required></label><label>Defensa <input id="p-defensa" type="number" min="0" required></label><label>Habilidad <input id="p-habilidad" required></label><label>¿Tiene evolución? <select id="p-tiene-evolucion"><option value="false">No</option><option value="true">Sí</option></select></label><label>Evolución <input id="p-evolucion"></label><label>Nivel de evolución <input id="p-nivel" type="number" min="1"></label><label>Rareza <select id="p-rareza"><option>Común</option><option>Poco común</option><option>Raro</option><option>Legendario</option><option>Mítico</option></select></label><label>Ruta de imagen <input id="p-imagen" placeholder="./assets/img/nombre.png" required></label><label>Ruta de sonido <input id="p-sonido" placeholder="./assets/sound/nombre.mp3"></label><label class="check-label"><input id="p-shiny" type="checkbox"> ¿Tiene versión shiny?</label><label>Ruta de imagen shiny <input id="p-imagen-shiny"></label><button type="submit">Guardar Pokémon</button><button type="button" class="btn-secundario" id="cancelar-carga">Cancelar</button><p id="mensaje-pokemon" class="mensaje"></p></form></section>`;
+  document.querySelector("#cancelar-carga").addEventListener("click", mostrarPerfil);
+  document.querySelector("#form-pokemon").addEventListener("submit", event => {
+    event.preventDefault();
+    const pokemones = leerPokemones();
+    const id = Number(document.querySelector("#p-id").value);
+    const nombre = document.querySelector("#p-nombre").value.trim();
+    if (pokemones.some(p => p.id === id || p.nombre.toLowerCase() === nombre.toLowerCase())) { document.querySelector("#mensaje-pokemon").textContent = "Ya existe un Pokémon con ese número o nombre."; return; }
+    const tieneEvolucion = document.querySelector("#p-tiene-evolucion").value === "true";
+    const nuevo = { id, nombre, tipo: document.querySelector("#p-tipo").value.split(",").map(t => t.trim()).filter(Boolean), descripcion: document.querySelector("#p-descripcion").value.trim(), altura: Number(document.querySelector("#p-altura").value), peso: Number(document.querySelector("#p-peso").value), generacion: Number(document.querySelector("#p-generacion").value), hp: Number(document.querySelector("#p-hp").value), ataque: Number(document.querySelector("#p-ataque").value), velocidad: Number(document.querySelector("#p-velocidad").value), defensa: Number(document.querySelector("#p-defensa").value), habilidad: document.querySelector("#p-habilidad").value.trim(), tieneEvolucion, evolucion: tieneEvolucion ? document.querySelector("#p-evolucion").value.trim() : null, nivelEvolucion: tieneEvolucion && document.querySelector("#p-nivel").value ? Number(document.querySelector("#p-nivel").value) : null, rareza: document.querySelector("#p-rareza").value, imagen: document.querySelector("#p-imagen").value.trim(), sonido: document.querySelector("#p-sonido").value.trim(), shiny: document.querySelector("#p-shiny").checked, imagenShiny: document.querySelector("#p-imagen-shiny").value.trim() };
+    if (!nuevo.tipo.length) { document.querySelector("#mensaje-pokemon").textContent = "Ingresá al menos un tipo."; return; }
+    guardarPokemones(nuevo);
+    mostrarPokedex();
+  });
+}
 
-            <label for="pokemon-type">Tipo:</label>
-            <input type="text" id="pokemon-type" required />
+let turnoBatalla = 0;
+function mostrarBatalla() {
+  turnoBatalla = 0;
+  app.innerHTML = `<section class="batalla-section"><h1>Batalla Pokémon</h1><p>Un entrenador rival aparece frente a vos. ¿Estás listo?</p><button id="comenzar-batalla">Comenzar batalla</button></section>`;
+  document.querySelector("#comenzar-batalla").addEventListener("click", mostrarTurnoBatalla);
+}
+function mostrarTurnoBatalla() {
+  const turnos = [
+    { texto: "Turno 1: El rival se prepara para atacar. ¿Qué querés hacer?", opciones: [["Atacar", "Tu Pokémon lanza un ataque y consigue ventaja."], ["Usar poción", "Recuperás energía y te preparás para el siguiente turno."]] },
+    { texto: "Turno 2: El rival vuelve a acercarse. ¿Cómo respondés?", opciones: [["Ataque rápido", "Tu Pokémon se mueve primero y esquiva el golpe."], ["Defender", "Te protegés y esperás una oportunidad mejor."]] },
+    { texto: "Turno 3: Es el momento decisivo. ¿Qué elegís?", opciones: [["Ataque especial", "¡Un gran movimiento! El rival ya no puede continuar."], ["Intentar negociar", "El rival acepta terminar el combate amistosamente."]] }
+  ];
+  if (turnoBatalla >= turnos.length) { app.innerHTML = `<section class="batalla-section"><h1>¡Fin de la batalla!</h1><p>Terminaste la aventura. ¡Buen trabajo, entrenador!</p><button id="reiniciar-batalla">Volver a jugar</button></section>`; document.querySelector("#reiniciar-batalla").addEventListener("click", mostrarBatalla); return; }
+  const turno = turnos[turnoBatalla];
+  app.innerHTML = `<section class="batalla-section"><h1>Batalla Pokémon</h1><h2>Turno ${turnoBatalla + 1}</h2><p>${turno.texto}</p><div class="batalla-opciones">${turno.opciones.map((op, i) => `<button data-opcion="${i}">${op[0]}</button>`).join("")}</div><p id="resultado-turno" class="mensaje"></p><button id="siguiente-turno" hidden>Continuar</button></section>`;
+  document.querySelectorAll("[data-opcion]").forEach(boton => boton.addEventListener("click", () => {
+    document.querySelectorAll("[data-opcion]").forEach(b => b.disabled = true);
+    document.querySelector("#resultado-turno").textContent = turno.opciones[Number(boton.dataset.opcion)][1];
+    const siguiente = document.querySelector("#siguiente-turno"); siguiente.hidden = false; siguiente.addEventListener("click", () => { turnoBatalla++; mostrarTurnoBatalla(); });
+  }));
+}
 
-            <label for="pokemon-height">Altura (m):</label>
-            <input type="number" id="pokemon-height" step="0.1" required />
-
-            <label for="pokemon-weight">Peso (kg):</label>
-            <input type="number" id="pokemon-weight" step="0.1" required />
-
-            <label for="pokemon-generation">Generación:</label>
-            <input type="number" id="pokemon-generation" required />
-
-            <label for="pokemon-hp">HP:</label>
-            <input type="number" id="pokemon-hp" required />
-            <label for="pokemon-attack">Ataque:</label>
-            <input type="number" id="pokemon-attack" required />
-            <label for="pokemon-speed">Velocidad:</label>
-            <input type="number" id="pokemon-speed" required />
-            <label for="pokemon-defense">Defensa:</label>
-            <input type="number" id="pokemon-defense" required />
-
-            <label for="pokemon-ability">Habilidad:</label>
-            <select id="pokemon-ability" required>
-             <option value="" disabled selected>Seleccioná una habilidad</option>
-              <option value="" disabled selected>Selecciona una habilidad</option>
-              <option value="Adaptability">Adaptable</option>
-              <option value="Battle Armor">Armadura batalla</option>
-              <option value="Blaze">Mar llamas</option>
-              <option value="Chlorophyll">Clorofila</option>
-              <option value="Clear Body">Cuerpo puro</option>
-              <option value="Color Change">Cambio color</option>
-              <option value="Compound Eyes">Ojo compuesto</option>
-              <option value="Cute Charm">Gran encanto</option>
-              <option value="Early Bird"> madrugar</option>
-              <option value="Effect Spore">Efecto espora</option>
-              <option value="Flame Body">Cuerpo llama</option>
-              <option value="Flash Fire">Absorbe fuego</option>
-              <option value="Guts">Agallas</option>
-              <option value="Huge Power">Potencia</option>
-              <option value="Hustle">Entusiasmo</option>
-              <option value="Hyper Cutter"> Corte fuerte</option>
-              <option value="Illuminate"> iluminacion</option>
-              <option value="Immunity">Inmunidad</option>
-              <option value="Inner Focus">Foco interno</option>
-              <option value="Intimidate">Intimidación</option>
-              <option value="Keen Eye">Vista lince</option>
-              <option value="Levitate">Levitación</option>
-              <option value="Lightning Rod">Pararrayos</option>
-              <option value="Limber">Flexibilidad</option>
-              <option value="Liquid Ooze">Lodo líquido</option>
-              <option value="Magic Guard">Muro mágico</option>
-              <option value="Natural Cure">Cura natural</option>
-              <option value="Oblivious">Despiste</option>
-              <option value="Overgrow">Espesura</option>
-              <option value="Own Tempo">Ritmo propio</option>
-              <option value="Pickup">Recogida</option>
-              <option value="Poison Point">Punto tóxico</option>
-              <option value="Pressure">Presión</option>
-              <option value="Run Away">Fuga</option>
-              <option value="Serene Grace"> dicha</option>
-              <option value="Shed Skin">Mudar</option>
-              <option value="Shield Dust">Polvo escudo</option>
-              <option value="Soundproof">Insonorizar</option>
-              <option value="Static">Electricidad estática</option>
-              <option value="Stench">Hedor</option>
-              <option value="Sturdy">Robustez</option>
-              <option value="Swarm">Enjambre</option>
-              <option value="Swift Swim">N जल veloz</option>
-              <option value="Synchronize"> sincronía</option>
-              <option value="Thick Fat">Sebo</option>
-              <option value="Torrent">Torrente</option>
-              <option value="Trace">Rastro</option>
-              <option value="Volt Absorb">Absorbe electricidad</option>
-              <option value="Water Absorb">Absorbe agua</option>
-              <option value="Wonder Guard">Superguarda</option>
-            </select>
-
-            <fieldset>
-              <legend>¿Tiene evolución?</legend>
-              <label for="  pokemon-has-evolution-yes">
-                <input type="radio" id="pokemon-has-evolution-yes" name="pokemon-has-evolution" value="true" required />
-                Sí
-              </label>
-              <label for="pokemon-has-evolution-no">
-                <input type="radio" id="pokemon-has-evolution-no" name="pokemon-has-evolution" value="false" required />
-                No
-              </label>
-            </fieldset>
-
-            <label for="pokemon-evolution">Evolución:</label>
-            <input type="text" id="pokemon-evolution" />
-
-            <label for="pokemon-evolution-level">Nivel de evolución:</label>
-            <input type="number" id="pokemon-evolution-level" />
-
-            <label for="pokemon-rarity">Rareza:</label>
-            <select id="pokemon-rarity" required>
-              <option value="" disabled selected>Seleccioná una rareza</option>
-              <option value="Común">Común</option>
-              <option value="Raro">Raro</option>
-              <option value="Legendario">Legendario</option>
-              <option value="Mítico">Mítico</option>
-              <option value="Singular">Singular</option>
-            </select>
-
-            <label for="pokemon-image">Imagen (URL):</label>
-            <input type="text" id="pokemon-image" required />
-
-            <label for="pokemon-sound">Sonido (URL):</label>
-            <input type="text" id="pokemon-sound" required />
-
-            <label for="pokemon-shiny">¿Es shiny?</label>
-            <input type="checkbox" id="pokemon-shiny" />
-
-            <label for="pokemon-shiny-image">Imagen shiny (URL):</label>
-            <input type="text" id="pokemon-shiny-image" />
-
-            <button type="submit">Agregar Pokémon</button>
-          </form>
-        </section>`;
-
-// ==========================================
-// 8. LANDING INICIAL
-// ==========================================
-
-app.innerHTML = landing;
-
-cargarLanding();
-
-botonBatalla.addEventListener("click", function (event) {
-  event.preventDefault();
-
-  app.innerHTML = batalla;
-
-  cargarBatalla();
+// Los eventos del menú se registran una sola vez al iniciar la aplicación.
+logo.addEventListener("click", mostrarInicio);
+linkPokedex.addEventListener("click", event => { event.preventDefault(); mostrarPokedex(); });
+linkLogin.addEventListener("click", event => { event.preventDefault(); mostrarLogin(); });
+linkRegistro.addEventListener("click", event => { event.preventDefault(); mostrarRegistro(); });
+linkBatalla.addEventListener("click", event => { event.preventDefault(); mostrarBatalla(); });
+formularioBusqueda.addEventListener("submit", event => { event.preventDefault(); mostrarPokedex(document.querySelector("#busqueda").value.trim()); });
+app.addEventListener("click", event => {
+  const boton = event.target.closest("[data-accion]");
+  if (!boton) return;
+  if (boton.dataset.accion === "detalle") mostrarDetalle(boton.dataset.id);
+  if (boton.dataset.accion === "volver-pokedex" || boton.dataset.accion === "inicio-pokedex") mostrarPokedex();
+  if (boton.dataset.accion === "inicio-batalla") mostrarBatalla();
 });
 
-// ==========================================
-// 7. PERFIL USUARIO ADMIN
-// ==========================================
-
-// ==========================================
-// 8. LANDING INICIAL
-// ==========================================
-
-app.innerHTML = landing;
-
-cargarLanding();
+mostrarInicio();
